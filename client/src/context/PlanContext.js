@@ -196,6 +196,83 @@ export const PlanProvider = ({ children }) => {
     }
   };
 
+  // Delete a plan
+  const deletePlan = async (planId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_URL}/plans/${planId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `HTTP error! Status: ${response.status}`
+        );
+      }
+
+      // Update the local state to remove the deleted plan
+      setPlans(plans.filter((plan) => plan.id !== parseInt(planId)));
+
+      return true;
+    } catch (err) {
+      console.error(`Error deleting plan ${planId}:`, err);
+      setError("Failed to delete plan. Please try again later.");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update an existing plan
+  const updatePlan = async (planId, planData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_URL}/plans/${planId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(planData),
+        credentials: "include", // Include credentials for CORS
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `HTTP error! Status: ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+
+      // Update the plan in the local state
+      setPlans(
+        plans.map((plan) => (plan.id === parseInt(planId) ? data.data : plan))
+      );
+
+      return data.data;
+    } catch (err) {
+      console.error(`Error updating plan ${planId}:`, err);
+
+      if (err instanceof TypeError && err.message.includes("fetch")) {
+        setError(
+          "Failed to connect to the server. This might be a CORS issue or the server is down."
+        );
+      } else {
+        setError(
+          err.message || "Failed to update plan. Please try again later."
+        );
+      }
+
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load plans on initial render
   useEffect(() => {
     fetchPlans();
@@ -214,6 +291,8 @@ export const PlanProvider = ({ children }) => {
         clearError, // Expose a dedicated function to clear errors
         getPlan,
         createPlan,
+        updatePlan,
+        deletePlan,
         linkAccountToPlan,
         unlinkAccountFromPlan,
         refreshPlans: fetchPlans,

@@ -5,16 +5,24 @@ import { AccountContext } from "../context/AccountContext";
 import { useNotification } from "../context/NotificationContext";
 import AccountModal from "./AccountModal";
 import LinkedAccountsSection from "./LinkedAccountsSection";
+import ConfirmationModal from "./ConfirmationModal";
 
 const PlanDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getPlan, linkAccountToPlan, unlinkAccountFromPlan, loading, error } =
-    usePlans();
+  const {
+    getPlan,
+    linkAccountToPlan,
+    unlinkAccountFromPlan,
+    deletePlan,
+    loading,
+    error,
+  } = usePlans();
   const { showSuccess, showError } = useNotification();
   const [plan, setPlan] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
   // Fetch plan data
   useEffect(() => {
@@ -82,6 +90,20 @@ const PlanDetailPage = () => {
   const handleAccountLinked = () => {
     setRefreshTrigger((prev) => prev + 1);
     showSuccess("Account successfully linked to plan");
+  };
+
+  // Handle plan deletion
+  const handleDeletePlan = async () => {
+    try {
+      const success = await deletePlan(id);
+      if (success) {
+        showSuccess("Plan deleted successfully");
+        navigate("/dashboard/plans");
+      }
+    } catch (err) {
+      console.error("Error deleting plan:", err);
+      showError(err.message || "Failed to delete plan");
+    }
   };
 
   if (loading) {
@@ -191,6 +213,12 @@ const PlanDetailPage = () => {
             >
               Edit Plan
             </Link>
+            <button
+              onClick={() => setShowDeleteConfirmation(true)}
+              className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg inline-block"
+            >
+              Delete Plan
+            </button>
           </div>
         </div>
 
@@ -206,11 +234,13 @@ const PlanDetailPage = () => {
           </div>
 
           <div className="bg-white rounded-lg p-4 shadow-sm">
-            <h3 className="text-purple-600 font-semibold mb-1">
-              Target Amount
-            </h3>
+            <h3 className="text-purple-600 font-semibold mb-1">Duration</h3>
             <p className="text-xl text-purple-700 font-bold">
-              ${plan.target_amount ? plan.target_amount.toLocaleString() : "0"}
+              {Math.round(
+                (new Date(plan.end_date) - new Date(plan.start_date)) /
+                  (1000 * 60 * 60 * 24 * 30.44)
+              )}{" "}
+              months
             </p>
           </div>
         </div>
@@ -310,10 +340,7 @@ const PlanDetailPage = () => {
           </h3>
           <p className="text-gray-600 mb-6">
             This plan runs from {formatDate(plan.start_date)} to{" "}
-            {formatDate(plan.end_date)}
-            {plan.target_amount
-              ? ` with a target amount of $${plan.target_amount.toLocaleString()}.`
-              : "."}
+            {formatDate(plan.end_date)}.
           </p>
 
           <div className="bg-purple-50 p-4 rounded-lg mb-6">
@@ -369,6 +396,19 @@ const PlanDetailPage = () => {
           planId={id}
           accountType={modalType}
           onAccountLinked={handleAccountLinked}
+        />
+      )}
+
+      {/* Confirmation Modal for deleting the plan */}
+      {showDeleteConfirmation && (
+        <ConfirmationModal
+          isOpen={showDeleteConfirmation}
+          onClose={() => setShowDeleteConfirmation(false)}
+          onConfirm={handleDeletePlan}
+          title="Delete Plan"
+          message="Are you sure you want to delete this plan? This action cannot be undone, and all linked accounts will be unlinked from this plan."
+          confirmButtonText="Delete Plan"
+          confirmButtonClass="bg-red-600 hover:bg-red-700"
         />
       )}
     </div>

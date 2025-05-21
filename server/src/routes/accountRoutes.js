@@ -19,4 +19,7 @@ router.put("/:id", accountController.updateAccount);
 // Delete an account
 router.delete("/:id", accountController.deleteAccount);
 
+// Get APR history for an account
+router.get("/:id/apr-history", accountController.getAccountAPRHistory);
+
 module.exports = router;

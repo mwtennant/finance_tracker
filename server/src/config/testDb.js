@@ -34,7 +34,6 @@ const resetTestDatabase = async () => {
         start_date DATE NOT NULL,
         end_date DATE NOT NULL,
         description TEXT,
-        target_amount DECIMAL(10, 2),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )

@@ -145,7 +145,6 @@ describe("NewPlanForm Component", () => {
         description: "",
         start_date: "2023-01-01",
         end_date: "2023-12-31",
-        target_amount: null,
       });
     });
   });

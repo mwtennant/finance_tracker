@@ -28,6 +28,7 @@ const AccountForm = ({
         name: isEditing ? initialData.name : "",
         type: isEditing ? initialData.type : "checking",
         balance: isEditing ? initialData.balance : 0,
+        apr: isEditing ? initialData.apr || 0 : 0,
       };
     } else if (accountType === "credit") {
       return {
@@ -41,13 +42,14 @@ const AccountForm = ({
         name: isEditing ? initialData.name : "",
         balance: isEditing ? initialData.balance : 0,
         interest_rate: isEditing ? initialData.interest_rate : 0,
-        term_months: isEditing ? initialData.term_months : 12,
+        term_months: isEditing ? initialData.term_months : null,
       };
     } else if (accountType === "investment") {
       return {
         name: isEditing ? initialData.name : "",
         type: isEditing ? initialData.type : "ira",
         balance: isEditing ? initialData.balance : 0,
+        targeted_rate: isEditing ? initialData.targeted_rate || 0 : 0,
       };
     }
   };
@@ -62,11 +64,19 @@ const AccountForm = ({
 
     // Convert numeric values
     if (
-      ["balance", "credit_limit", "interest_rate", "term_months"].includes(name)
+      [
+        "balance",
+        "credit_limit",
+        "interest_rate",
+        "term_months",
+        "apr",
+        "targeted_rate",
+      ].includes(name)
     ) {
       setFormData({
         ...formData,
-        [name]: parseFloat(value),
+        [name]:
+          value === "" && name === "term_months" ? null : parseFloat(value),
       });
     } else {
       setFormData({
@@ -149,6 +159,24 @@ const AccountForm = ({
                 <option value="other">Other</option>
               </select>
             </div>
+            <div className="mb-4">
+              <label
+                className="block text-gray-700 text-sm font-bold mb-2"
+                htmlFor="apr"
+              >
+                APR (%)
+              </label>
+              <input
+                type="number"
+                id="apr"
+                name="apr"
+                value={formData.apr}
+                onChange={handleChange}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                min="0"
+                step="0.01"
+              />
+            </div>
           </>
         );
       case "credit":
@@ -168,9 +196,8 @@ const AccountForm = ({
                 value={formData.credit_limit}
                 onChange={handleChange}
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                required
-                min="0"
                 step="0.01"
+                placeholder="Optional"
               />
             </div>
             <div className="mb-4">
@@ -227,13 +254,18 @@ const AccountForm = ({
                 type="number"
                 id="term_months"
                 name="term_months"
-                value={formData.term_months}
+                value={
+                  formData.term_months === null ? "" : formData.term_months
+                }
                 onChange={handleChange}
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                required
                 min="1"
                 step="1"
+                placeholder="Optional"
               />
+              <small className="text-gray-600">
+                Leave empty for open-ended loans
+              </small>
             </div>
           </>
         );
@@ -262,6 +294,24 @@ const AccountForm = ({
                 <option value="crypto">Cryptocurrency</option>
                 <option value="other">Other</option>
               </select>
+            </div>
+            <div className="mb-4">
+              <label
+                className="block text-gray-700 text-sm font-bold mb-2"
+                htmlFor="targeted_rate"
+              >
+                Targeted Annual Return Rate (%)
+              </label>
+              <input
+                type="number"
+                id="targeted_rate"
+                name="targeted_rate"
+                value={formData.targeted_rate}
+                onChange={handleChange}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                min="0"
+                step="0.01"
+              />
             </div>
           </>
         );

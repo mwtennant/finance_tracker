@@ -62,7 +62,6 @@ describe("Plan Creation Integration Tests", () => {
         description: "Test plan created during integration testing",
         start_date: "2025-06-01",
         end_date: "2035-06-01",
-        target_amount: 250000,
       };
 
       // Mock the database query response (not needed in test mode but kept for reference)
@@ -94,7 +93,6 @@ describe("Plan Creation Integration Tests", () => {
           planData.description,
           planData.start_date,
           planData.end_date,
-          planData.target_amount,
         ])
       );
     });
@@ -104,7 +102,6 @@ describe("Plan Creation Integration Tests", () => {
       const planData = {
         name: "Missing Fields Plan",
         // Missing start_date and end_date
-        target_amount: 100000,
       };
 
       // Make the API request
@@ -126,7 +123,6 @@ describe("Plan Creation Integration Tests", () => {
         description: "Plan with end date before start date",
         start_date: "2030-01-01",
         end_date: "2025-01-01", // End date before start date
-        target_amount: 50000,
       };
 
       // Make the API request
@@ -150,7 +146,6 @@ describe("Plan Creation Integration Tests", () => {
         description: "Plan that will trigger a database error",
         start_date: "2025-07-01",
         end_date: "2035-07-01",
-        target_amount: 75000,
       };
 
       // Mock a database error
@@ -173,7 +168,7 @@ describe("Plan Creation Integration Tests", () => {
         name: "Minimal Plan",
         start_date: "2026-01-01",
         end_date: "2036-01-01",
-        // No description or target_amount
+        // No description
       };
 
       // Mock the database query response
@@ -183,7 +178,6 @@ describe("Plan Creation Integration Tests", () => {
             id: 100,
             ...planData,
             description: null,
-            target_amount: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -198,7 +192,6 @@ describe("Plan Creation Integration Tests", () => {
       expect(response.body.status).toBe("success");
       expect(response.body.data.name).toBe(planData.name);
       expect(response.body.data.description).toBeNull();
-      expect(response.body.data.target_amount).toBeNull();
 
       // Verify the correct SQL was executed with null values for optional fields
       expect(pool.query).toHaveBeenCalledWith(
@@ -208,7 +201,6 @@ describe("Plan Creation Integration Tests", () => {
           null, // description
           planData.start_date,
           planData.end_date,
-          null, // target_amount
         ])
       );
     });

@@ -10,6 +10,7 @@ import Dashboard from "./components/Dashboard";
 import PlansDashboard from "./components/PlansDashboard";
 import PlanDetailPage from "./components/PlanDetailPage";
 import NewPlanForm from "./components/NewPlanForm";
+import PlanForm from "./components/PlanForm";
 import AccountsDashboard from "./components/AccountsDashboard";
 import TransactionsDashboard from "./components/TransactionsDashboard";
 import TailwindTest from "./components/TailwindTest";
@@ -168,12 +169,16 @@ function App() {
                       element={<Dashboard section="investmentAccounts" />}
                     />
                     <Route
-                      path="/dashboard/transactions"
+                      path="/dashboard/transactions/*"
                       element={<TransactionsDashboard />}
                     />
 
                     {/* Plan-specific routes */}
                     <Route path="/plans/new" element={<NewPlanForm />} />
+                    <Route
+                      path="/plans/:id/edit"
+                      element={<PlanForm isEditMode={true} />}
+                    />
                     <Route path="/plans/:id" element={<PlanDetailPage />} />
 
                     {/* Legacy routes */}

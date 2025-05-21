@@ -21,7 +21,6 @@ const NewPlanForm = () => {
     description: "",
     start_date: "",
     end_date: "",
-    target_amount: "",
   });
 
   // Form validation state
@@ -65,11 +64,6 @@ const NewPlanForm = () => {
       }
     }
 
-    // Target amount validation (if provided)
-    if (formData.target_amount && isNaN(formData.target_amount)) {
-      newErrors.target_amount = "Target amount must be a number";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -81,13 +75,7 @@ const NewPlanForm = () => {
 
     if (validateForm()) {
       try {
-        // Format target_amount as a number if provided
-        const planData = {
-          ...formData,
-          target_amount: formData.target_amount
-            ? parseFloat(formData.target_amount)
-            : null,
-        };
+        const planData = { ...formData };
 
         const createdPlan = await createPlan(planData);
 
@@ -215,32 +203,6 @@ const NewPlanForm = () => {
                   <p className="text-red-500 text-sm mt-1">{errors.end_date}</p>
                 )}
               </div>
-            </div>
-
-            <div className="mb-6">
-              <label
-                htmlFor="target_amount"
-                className="block text-gray-700 font-medium mb-2"
-              >
-                Target Amount
-              </label>
-              <input
-                type="text"
-                id="target_amount"
-                name="target_amount"
-                value={formData.target_amount}
-                onChange={handleChange}
-                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition ${
-                  errors.target_amount ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="100000"
-                disabled={loading}
-              />
-              {errors.target_amount && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.target_amount}
-                </p>
-              )}
             </div>
 
             <div className="flex justify-end space-x-4">

@@ -86,7 +86,7 @@ const PlanSummary = () => {
 
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <h3 className="text-purple-600 font-semibold mb-1">
-              Target Amount
+              Predicted Final Amount
             </h3>
             <p className="text-xl text-purple-700 font-bold">
               ${plan.target.toLocaleString()}

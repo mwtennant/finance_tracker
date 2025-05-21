@@ -31,7 +31,6 @@ const mockPlans = [
     created_at: "2025-01-01T00:00:00.000Z",
     start_date: "2025-01-01T00:00:00.000Z",
     end_date: "2045-01-01T00:00:00.000Z",
-    target_amount: 500000,
   },
   {
     id: 2,
@@ -39,7 +38,6 @@ const mockPlans = [
     created_at: "2025-02-15T00:00:00.000Z",
     start_date: "2025-03-01T00:00:00.000Z",
     end_date: "2030-03-01T00:00:00.000Z",
-    target_amount: 100000,
   },
 ];
 
@@ -114,7 +112,7 @@ describe("PlansDashboard Component", () => {
     expect(screen.getAllByText(/start date:/i)).toHaveLength(2);
     expect(screen.getAllByText(/end date:/i)).toHaveLength(2);
 
-    // Check for target amount
+    // Check for predicted final amount
     expect(screen.getByText(/target: \$500,000/i)).toBeInTheDocument();
     expect(screen.getByText(/target: \$100,000/i)).toBeInTheDocument();
   });

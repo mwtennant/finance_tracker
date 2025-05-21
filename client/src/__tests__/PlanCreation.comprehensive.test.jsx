@@ -102,48 +102,6 @@ describe("Plan Creation Comprehensive Tests", () => {
       // API call should not have been made
       expect(global.fetch).not.toHaveBeenCalled();
     });
-
-    test("validates target amount as a number", async () => {
-      await act(async () => {
-        renderWithProviders(<NewPlanForm />);
-      });
-
-      // Fill required fields but set invalid target amount
-      await act(async () => {
-        await userEvent.type(
-          screen.getByLabelText(/plan name/i),
-          "Invalid Amount Plan"
-        );
-
-        // Set valid dates
-        const startDateInput = screen.getByLabelText(/start date/i);
-        const endDateInput = screen.getByLabelText(/end date/i);
-        fireEvent.change(startDateInput, { target: { value: "2025-01-01" } });
-        fireEvent.change(endDateInput, { target: { value: "2030-01-01" } });
-
-        // Set invalid target amount
-        await userEvent.type(
-          screen.getByLabelText(/target amount/i),
-          "not-a-number"
-        );
-      });
-
-      // Submit the form
-      const submitButton = screen.getByRole("button", { name: /create plan/i });
-      await act(async () => {
-        await userEvent.click(submitButton);
-      });
-
-      // Verify validation error for target amount
-      await waitFor(() => {
-        expect(
-          screen.getByText(/target amount must be a number/i)
-        ).toBeInTheDocument();
-      });
-
-      // API call should not have been made
-      expect(global.fetch).not.toHaveBeenCalled();
-    });
   });
 
   describe("API Interaction", () => {
@@ -159,7 +117,6 @@ describe("Plan Creation Comprehensive Tests", () => {
             description: null,
             start_date: "2025-01-01",
             end_date: "2030-01-01",
-            target_amount: null,
             created_at: "2025-05-20T12:00:00Z",
             updated_at: "2025-05-20T12:00:00Z",
           },
@@ -201,7 +158,6 @@ describe("Plan Creation Comprehensive Tests", () => {
               description: "",
               start_date: "2025-01-01",
               end_date: "2030-01-01",
-              target_amount: null,
             }),
           })
         );
@@ -303,7 +259,6 @@ describe("Plan Creation Comprehensive Tests", () => {
             description: "This is a complete plan with all fields",
             start_date: "2026-01-01",
             end_date: "2036-01-01",
-            target_amount: 200000,
             created_at: "2025-05-20T12:00:00Z",
             updated_at: "2025-05-20T12:00:00Z",
           },
@@ -330,9 +285,6 @@ describe("Plan Creation Comprehensive Tests", () => {
         const endDateInput = screen.getByLabelText(/end date/i);
         fireEvent.change(startDateInput, { target: { value: "2026-01-01" } });
         fireEvent.change(endDateInput, { target: { value: "2036-01-01" } });
-
-        // Set target amount
-        await userEvent.type(screen.getByLabelText(/target amount/i), "200000");
       });
 
       // Submit the form
@@ -352,7 +304,6 @@ describe("Plan Creation Comprehensive Tests", () => {
               description: "This is a complete plan with all fields",
               start_date: "2026-01-01",
               end_date: "2036-01-01",
-              target_amount: 200000,
             }),
           })
         );

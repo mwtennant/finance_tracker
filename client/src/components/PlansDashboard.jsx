@@ -59,11 +59,6 @@ const PlansDashboard = () => {
                   Start Date: {formatDate(plan.start_date)}
                 </p>
                 <p className="mb-1">End Date: {formatDate(plan.end_date)}</p>
-                {plan.target_amount && (
-                  <p className="font-semibold mt-3">
-                    Target: ${parseFloat(plan.target_amount).toLocaleString()}
-                  </p>
-                )}
               </div>
             </Link>
           ))}

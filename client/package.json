@@ -5,8 +5,8 @@
   "description": "Finance Tracker React Frontend",
   "main": "src/index.jsx",
   "scripts": {
-    "start": "PORT=3001 craco start",
-    "build": "craco build",
+    "start": "PORT=3001 node ./node_modules/react-scripts/bin/react-scripts.js start",
+    "build": "node ./node_modules/react-scripts/bin/react-scripts.js build",
     "test": "jest --config jest.config.js",
     "test:watch": "jest --config jest.config.js --watch",
     "test:coverage": "jest --config jest.config.js --coverage",
@@ -18,7 +18,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.6.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "^5.0.1"
   },
   "browserslist": {
     "production": [

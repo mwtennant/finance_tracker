@@ -7,7 +7,7 @@ const { ApiError } = require("../middleware/errorMiddleware");
  */
 const createPlan = async (req, res, next) => {
   try {
-    const { name, description, start_date, end_date, target_amount } = req.body;
+    const { name, description, start_date, end_date } = req.body;
 
     // Validate required fields
     if (!name || !start_date || !end_date) {
@@ -29,7 +29,6 @@ const createPlan = async (req, res, next) => {
         description,
         start_date,
         end_date,
-        target_amount: target_amount || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -41,10 +40,10 @@ const createPlan = async (req, res, next) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO plans (name, description, start_date, end_date, target_amount) 
-       VALUES ($1, $2, $3, $4, $5) 
+      `INSERT INTO plans (name, description, start_date, end_date) 
+       VALUES ($1, $2, $3, $4) 
        RETURNING *`,
-      [name, description, start_date, end_date, target_amount || null]
+      [name, description, start_date, end_date]
     );
 
     res.status(201).json({
@@ -71,7 +70,6 @@ const getAllPlans = async (req, res, next) => {
           description: "This is a test plan for development",
           start_date: "2025-06-01",
           end_date: "2025-12-31",
-          target_amount: 10000.0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -81,7 +79,6 @@ const getAllPlans = async (req, res, next) => {
           description: "Another test plan",
           start_date: "2025-07-01",
           end_date: "2026-01-31",
-          target_amount: 25000.0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -133,7 +130,6 @@ const getPlanById = async (req, res, next) => {
         description: "This is a test plan for development",
         start_date: "2025-06-01",
         end_date: "2035-06-01",
-        target_amount: 100000,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         accounts: [],
@@ -394,10 +390,85 @@ const unlinkAccountFromPlan = async (req, res, next) => {
   }
 };
 
+/**
+ * Delete a plan and cascade delete all associated account links
+ */
+const deletePlan = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Check if the plan exists
+    const planResult = await pool.query(`SELECT * FROM plans WHERE id = $1`, [
+      id,
+    ]);
+
+    if (planResult.rows.length === 0) {
+      throw new ApiError(`No plan found with id ${id}`, 404);
+    }
+
+    // Delete the plan - account links will be automatically cascade deleted due to ON DELETE CASCADE
+    await pool.query(`DELETE FROM plans WHERE id = $1`, [id]);
+
+    res.status(200).json({
+      status: "success",
+      message: "Plan and all associated account links deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update an existing plan
+ */
+const updatePlan = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, description, start_date, end_date } = req.body;
+
+    // Check if the plan exists
+    const planResult = await pool.query(`SELECT * FROM plans WHERE id = $1`, [
+      id,
+    ]);
+
+    if (planResult.rows.length === 0) {
+      throw new ApiError(`No plan found with id ${id}`, 404);
+    }
+
+    // Validate required fields
+    if (!name || !start_date || !end_date) {
+      throw new ApiError("Name, start date, and end date are required", 400);
+    }
+
+    // Validate date range
+    if (new Date(start_date) >= new Date(end_date)) {
+      throw new ApiError("End date must be after start date", 400);
+    }
+
+    // Update the plan
+    const result = await pool.query(
+      `UPDATE plans 
+       SET name = $1, description = $2, start_date = $3, end_date = $4, updated_at = NOW() 
+       WHERE id = $5 
+       RETURNING *`,
+      [name, description, start_date, end_date, id]
+    );
+
+    res.status(200).json({
+      status: "success",
+      data: result.rows[0],
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createPlan,
   getAllPlans,
   getPlanById,
   linkAccountToPlan,
   unlinkAccountFromPlan,
+  deletePlan,
+  updatePlan,
 };

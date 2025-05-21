@@ -50,7 +50,6 @@ describe("Plan Creation Tests", () => {
       description: "Test description",
       start_date: "2025-01-01",
       end_date: "2026-01-01",
-      target_amount: 10000,
     };
 
     // Mock the database response
@@ -79,7 +78,6 @@ describe("Plan Creation Tests", () => {
     const planData = {
       name: "Missing Fields Plan",
       // Missing start_date and end_date
-      target_amount: 5000,
     };
 
     // Make the API request

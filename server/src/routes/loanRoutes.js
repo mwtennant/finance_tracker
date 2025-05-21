@@ -19,4 +19,7 @@ router.put("/:id", loanController.updateLoan);
 // Delete a loan
 router.delete("/:id", loanController.deleteLoan);
 
+// Get interest rate history for a loan
+router.get("/:id/interest-history", loanController.getLoanInterestHistory);
+
 module.exports = router;

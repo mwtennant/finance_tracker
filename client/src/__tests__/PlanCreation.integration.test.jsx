@@ -25,7 +25,6 @@ const mockPlanResponse = {
     description: "Test plan for integration tests",
     start_date: "2025-07-01",
     end_date: "2035-07-01",
-    target_amount: 100000,
     created_at: "2025-05-20T12:00:00Z",
     updated_at: "2025-05-20T12:00:00Z",
   },
@@ -88,8 +87,11 @@ describe("Plan Creation Integration Tests", () => {
       fireEvent.change(startDateInput, { target: { value: "2025-07-01" } });
       fireEvent.change(endDateInput, { target: { value: "2035-07-01" } });
 
-      // Set target amount
-      await userEvent.type(screen.getByLabelText(/target amount/i), "100000");
+      // Set predicted final amount
+      await userEvent.type(
+        screen.getByLabelText(/predicted final amount/i),
+        "100000"
+      );
     });
 
     // Submit the form
@@ -113,7 +115,6 @@ describe("Plan Creation Integration Tests", () => {
             description: "Test plan for integration tests",
             start_date: "2025-07-01",
             end_date: "2035-07-01",
-            target_amount: 100000,
           }),
         })
       );

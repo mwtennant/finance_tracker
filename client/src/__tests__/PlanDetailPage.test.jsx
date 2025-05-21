@@ -48,7 +48,6 @@ const mockPlan = {
   description: "My retirement savings plan",
   start_date: "2025-01-01T00:00:00.000Z",
   end_date: "2045-01-01T00:00:00.000Z",
-  target_amount: 500000,
   created_at: "2025-01-01T00:00:00.000Z",
   accounts: [
     { id: 1, name: "Checking Account", type: "checking", balance: 5000 },
@@ -160,7 +159,7 @@ describe("PlanDetailPage Component", () => {
     // Check for accounts in overview tab
     expect(screen.getByText("Plan Summary")).toBeInTheDocument();
     expect(
-      screen.getByText(/with a target amount of \$500,000/i)
+      screen.getByText(/with a predicted final amount of \$500,000/i)
     ).toBeInTheDocument();
   });
 

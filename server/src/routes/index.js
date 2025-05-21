@@ -7,6 +7,7 @@ const accountRoutes = require("./accountRoutes");
 const creditAccountRoutes = require("./creditAccountRoutes");
 const loanRoutes = require("./loanRoutes");
 const investmentAccountRoutes = require("./investmentAccountRoutes");
+const transactionRoutes = require("./transactionRoutes");
 
 // Plan routes
 router.use("/plans", planRoutes);
@@ -16,6 +17,9 @@ router.use("/accounts", accountRoutes);
 router.use("/credit-accounts", creditAccountRoutes);
 router.use("/loans", loanRoutes);
 router.use("/investment-accounts", investmentAccountRoutes);
+
+// Transaction routes
+router.use("/transactions", transactionRoutes);
 
 // Example routes
 router.get("/example", exampleController.getExample);

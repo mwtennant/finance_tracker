@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { usePlans } from "../context/PlanContext";
 
-const PlanForm = () => {
+const PlanForm = ({ isEditMode = false }) => {
   const navigate = useNavigate();
-  const { createPlan, loading, error } = usePlans();
+  const { id } = useParams();
+  const { createPlan, updatePlan, getPlan, loading, error, clearError } =
+    usePlans();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -12,8 +14,42 @@ const PlanForm = () => {
     description: "",
     start_date: "",
     end_date: "",
-    target_amount: "",
   });
+
+  // Load plan data if in edit mode
+  useEffect(() => {
+    const loadPlanData = async () => {
+      if (isEditMode && id) {
+        try {
+          const planData = await getPlan(id);
+          if (planData) {
+            // Format dates for input[type=date]
+            const formatDate = (dateString) => {
+              const date = new Date(dateString);
+              return date.toISOString().split("T")[0];
+            };
+
+            setFormData({
+              name: planData.name || "",
+              description: planData.description || "",
+              start_date: formatDate(planData.start_date),
+              end_date: formatDate(planData.end_date),
+            });
+          }
+        } catch (err) {
+          console.error("Error loading plan data:", err);
+        }
+      }
+    };
+
+    if (isEditMode) {
+      loadPlanData();
+    }
+
+    // Clear any errors when component mounts or unmounts
+    clearError();
+    return () => clearError();
+  }, [isEditMode, id, getPlan, clearError]);
 
   // Form validation state
   const [errors, setErrors] = useState({});
@@ -56,11 +92,6 @@ const PlanForm = () => {
       }
     }
 
-    // Target amount validation (if provided)
-    if (formData.target_amount && isNaN(formData.target_amount)) {
-      newErrors.target_amount = "Target amount must be a number";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -70,19 +101,27 @@ const PlanForm = () => {
     e.preventDefault();
 
     if (validateForm()) {
-      // Format target_amount as a number if provided
-      const planData = {
-        ...formData,
-        target_amount: formData.target_amount
-          ? parseFloat(formData.target_amount)
-          : null,
-      };
+      const planData = { ...formData };
 
-      const createdPlan = await createPlan(planData);
-
-      if (createdPlan) {
-        // Redirect to the new plan's detail page
-        navigate(`/plans/${createdPlan.id}`);
+      try {
+        if (isEditMode) {
+          // Update existing plan
+          const updatedPlan = await updatePlan(id, planData);
+          if (updatedPlan) {
+            navigate(`/plans/${id}`);
+          }
+        } else {
+          // Create new plan
+          const createdPlan = await createPlan(planData);
+          if (createdPlan) {
+            navigate(`/plans/${createdPlan.id}`);
+          }
+        }
+      } catch (err) {
+        console.error(
+          isEditMode ? "Error updating plan:" : "Error creating plan:",
+          err
+        );
       }
     }
   };
@@ -90,7 +129,7 @@ const PlanForm = () => {
   return (
     <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md">
       <h2 className="text-2xl font-bold text-purple-700 mb-6">
-        Create New Financial Plan
+        {isEditMode ? "Edit Financial Plan" : "Create New Financial Plan"}
       </h2>
 
       {error && (
@@ -191,34 +230,12 @@ const PlanForm = () => {
           </div>
         </div>
 
-        <div className="mb-6">
-          <label
-            htmlFor="target_amount"
-            className="block text-gray-700 font-medium mb-2"
-          >
-            Target Amount ($)
-          </label>
-          <input
-            type="text"
-            id="target_amount"
-            name="target_amount"
-            value={formData.target_amount}
-            onChange={handleChange}
-            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition ${
-              errors.target_amount ? "border-red-500" : "border-gray-300"
-            }`}
-            placeholder="100000"
-            disabled={loading}
-          />
-          {errors.target_amount && (
-            <p className="text-red-500 text-sm mt-1">{errors.target_amount}</p>
-          )}
-        </div>
-
         <div className="flex justify-end space-x-4">
           <button
             type="button"
-            onClick={() => navigate("/dashboard/plans")}
+            onClick={() =>
+              navigate(isEditMode ? `/plans/${id}` : "/dashboard/plans")
+            }
             className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50"
             disabled={loading}
           >
@@ -229,7 +246,13 @@ const PlanForm = () => {
             className="px-6 py-3 bg-purple-600 rounded-lg text-white font-medium hover:bg-purple-700 transition"
             disabled={loading}
           >
-            {loading ? "Creating..." : "Create Plan"}
+            {isEditMode
+              ? loading
+                ? "Updating..."
+                : "Update Plan"
+              : loading
+              ? "Creating..."
+              : "Create Plan"}
           </button>
         </div>
       </form>

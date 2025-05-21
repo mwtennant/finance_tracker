@@ -13,6 +13,12 @@ router.get("/", planController.getAllPlans);
 // Get a specific plan with linked accounts
 router.get("/:id", planController.getPlanById);
 
+// Update a plan
+router.put("/:id", planController.updatePlan);
+
+// Delete a plan
+router.delete("/:id", planController.deletePlan);
+
 // Link an account to a plan
 router.post("/:planId/accounts", planController.linkAccountToPlan);
 

@@ -40,7 +40,18 @@ const AccountList = ({ accountType = "standard", onAccountSelect = null }) => {
   const getAccountTypeName = (type) => {
     switch (accountType) {
       case "standard":
-        return type.charAt(0).toUpperCase() + type.slice(1);
+        switch (type) {
+          case "checking":
+            return "Checking Account";
+          case "savings":
+            return "Savings Account";
+          case "cash":
+            return "Cash Account";
+          case "other":
+            return "Other Account";
+          default:
+            return type.charAt(0).toUpperCase() + type.slice(1);
+        }
       case "credit":
         return "Credit Card";
       case "loan":
@@ -51,6 +62,10 @@ const AccountList = ({ accountType = "standard", onAccountSelect = null }) => {
             return "IRA";
           case "401k":
             return "401(k)";
+          case "brokerage":
+            return "Brokerage Account";
+          case "roth":
+            return "Roth IRA";
           default:
             return type.charAt(0).toUpperCase() + type.slice(1);
         }
@@ -133,6 +148,7 @@ const AccountList = ({ accountType = "standard", onAccountSelect = null }) => {
           <div className="text-gray-600">
             <p>Type: {getAccountTypeName(account.type)}</p>
             <p>Balance: {formatCurrency(account.balance)}</p>
+            <p>APR: {account.apr ? `${account.apr}%` : "N/A"}</p>
           </div>
         );
       case "credit":
