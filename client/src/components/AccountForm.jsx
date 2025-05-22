@@ -34,7 +34,6 @@ const AccountForm = ({
       return {
         name: isEditing ? initialData.name : "",
         balance: isEditing ? initialData.balance : 0,
-        credit_limit: isEditing ? initialData.credit_limit : 0,
         interest_rate: isEditing ? initialData.interest_rate : 0,
       };
     } else if (accountType === "loan") {
@@ -66,7 +65,6 @@ const AccountForm = ({
     if (
       [
         "balance",
-        "credit_limit",
         "interest_rate",
         "term_months",
         "apr",
@@ -182,24 +180,6 @@ const AccountForm = ({
       case "credit":
         return (
           <>
-            <div className="mb-4">
-              <label
-                className="block text-gray-700 text-sm font-bold mb-2"
-                htmlFor="credit_limit"
-              >
-                Credit Limit
-              </label>
-              <input
-                type="number"
-                id="credit_limit"
-                name="credit_limit"
-                value={formData.credit_limit}
-                onChange={handleChange}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                step="0.01"
-                placeholder="Optional"
-              />
-            </div>
             <div className="mb-4">
               <label
                 className="block text-gray-700 text-sm font-bold mb-2"

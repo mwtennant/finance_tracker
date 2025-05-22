@@ -34,7 +34,6 @@ CREATE TABLE credit_accounts (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   balance DECIMAL(15, 2) NOT NULL DEFAULT 0,
-  credit_limit DECIMAL(15, 2) NOT NULL,
   interest_rate DECIMAL(5, 2) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()

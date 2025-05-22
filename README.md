@@ -20,40 +20,6 @@ A personal finance tracker application built with React, Express, and PostgreSQL
 - **Database**: PostgreSQL
 - **Development Tools**: Docker, Git
 
-## Project Structure
-
-```
-finance_tracker/
-├── client/                # Frontend React application
-│   ├── src/
-│   │   ├── components/    # React components
-│   │   │   ├── AccountForm.jsx           # Add/edit accounts
-│   │   │   ├── AccountList.jsx           # Display accounts
-│   │   │   ├── AccountsDashboard.jsx     # Main accounts page
-│   │   │   ├── AccountModal.jsx          # Link accounts to plans
-│   │   │   ├── LinkedAccountsSection.jsx # Show linked accounts
-│   │   │   ├── PlanDetailPage.jsx        # Plan details view
-│   │   │   └── ...                       # Other components
-│   │   └── context/      # React context for state management
-│   │       ├── AccountContext.js         # Account state and API calls
-│   │       ├── NotificationContext.js    # Notification system
-│   │       └── PlanContext.js            # Plan state and API calls
-│   └── public/           # Public assets
-├── server/               # Backend Express application
-│   ├── src/
-│   │   ├── controllers/  # Request handlers
-│   │   │   ├── accountController.js         # Standard accounts
-│   │   │   ├── creditAccountController.js   # Credit accounts
-│   │   │   ├── loanController.js            # Loans
-│   │   │   ├── investmentAccountController.js # Investment accounts
-│   │   │   └── planController.js            # Financial plans
-│   │   ├── routes/       # API route definitions
-│   │   ├── db/           # Database scripts
-│   │   └── middleware/   # Express middleware
-│   └── setup-db.sh       # Database setup script
-└── docker-compose.yml    # Docker configuration
-```
-
 ## Getting Started
 
 ### Prerequisites
@@ -66,22 +32,27 @@ finance_tracker/
 
 1. Clone the repository:
 
-   ```
+   ```bash
    git clone <repository-url>
    cd finance_tracker
    ```
 
 2. Install dependencies:
 
-   ```
+   ```bash
+   # Root project dependencies
    npm install
+
+   # Client dependencies
    cd client && npm install
+
+   # Server dependencies
    cd ../server && npm install
    ```
 
 3. Set up the database:
 
-   ```
+   ```bash
    # Using Docker
    docker-compose up -d
 
@@ -92,17 +63,26 @@ finance_tracker/
 
 4. Start the development servers:
 
-   ```
+   ```bash
+   # Start both client and server using the root package.json script
+   npm run dev
+
+   # OR start them separately
+
    # In the server directory
+   cd server
    npm run dev
 
    # In the client directory (new terminal)
+   cd client
    npm start
+   5. Open the application in your browser:
    ```
 
-5. Open the application in your browser:
+   http://localhost:3001
+
    ```
-   http://localhost:3000
+
    ```
 
 ## API Endpoints
@@ -146,66 +126,32 @@ finance_tracker/
 ### Account Linking
 
 - `POST /api/plans/:planId/accounts` - Link account to plan
-- `DELETE /api/plans/:planId/accounts` - Unlink account from plan
+- `DELETE /api/plans/:planId/accounts/:accountId` - Unlink account from plan
 
-## License
+## Useful Commands
 
-This project is licensed under the MIT License.
+### Kill any processes running on the application ports and restart the app:
 
-_Last updated: 2025-05-20_
-npm install
-
+```bash
+# Kill processes on ports 3001 & 5002 and restart the app
+cd /Users/matthewwtennant/Documents/Code/finance_tracker/v_01 && ./restart-app.sh
 ```
 
-3. Install dependencies for the client:
+### Run database migrations:
+
+```bash
+cd server && ./setup-db.sh
 ```
 
-cd client
-npm install
+## Troubleshooting
 
-```
+If you encounter database errors, try running the specific fix scripts in the server directory:
 
-### Configuration
-
-1. Create a `.env` file in the `server` directory and add your environment variables:
-```
-
-DATABASE_URL=your_database_url
-
-```
-
-### Running the Application
-
-1. Start the server:
-
-```
-
+```bash
 cd server
-npm start
-
+./fix-term-months.sh
+./fix-loan-interest-history.sh
 ```
-
-2. Start the client:
-```
-
-cd client
-npm start
-
-```
-
-### Docker
-
-To run the application using Docker, use the following command:
-
-```
-
-docker-compose up
-
-```
-
-## Usage
-
-Visit `http://localhost:3001` to view the application in your browser. The API will be available at `http://localhost:5002`.
 
 ## Contributing
 
@@ -214,4 +160,7 @@ Feel free to submit issues or pull requests for any improvements or bug fixes.
 ## License
 
 This project is licensed under the MIT License.
-```
+
+---
+
+\_Last updated: 2025-05-21_17_10

@@ -1,6 +1,7 @@
 // transactionController.js
 const { pool } = require("../db");
 const { ApiError } = require("../middleware/errorMiddleware");
+const recurringTransactionService = require("../services/recurringTransactionService");
 
 /**
  * Create a new transaction
@@ -15,6 +16,14 @@ const createTransaction = async (req, res, next) => {
       date,
       status,
       description,
+
+      // Recurring transaction fields
+      is_recurring,
+      recurrence_type,
+      recurrence_interval,
+      start_date,
+      end_date,
+      recurring_name,
     } = req.body;
 
     // Validate required fields
@@ -159,11 +168,47 @@ const createTransaction = async (req, res, next) => {
         description,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        recurring_series_id: is_recurring
+          ? Math.floor(Math.random() * 100) + 1
+          : null,
+        is_recurring_template: false,
       };
 
       return res.status(201).json({
         status: "success",
         data: mockTransaction,
+      });
+    }
+
+    // Handle recurring transactions
+    if (is_recurring && recurrence_type) {
+      // Create a recurring transaction series
+      const seriesData = {
+        name: recurring_name || `${transaction_type} (${recurrence_type})`,
+        description,
+        recurrence_type,
+        recurrence_interval: recurrence_interval || 1,
+        start_date: start_date || date,
+        end_date,
+      };
+
+      const templateData = {
+        transaction_type,
+        from_account_id,
+        to_account_id,
+        amount,
+        date,
+        description,
+      };
+
+      const result = await recurringTransactionService.createRecurringSeries(
+        seriesData,
+        templateData
+      );
+
+      return res.status(201).json({
+        status: "success",
+        data: result,
       });
     }
 
@@ -227,6 +272,22 @@ const getAllTransactions = async (req, res, next) => {
       query += ` AND (from_account_id = $${paramIndex} OR to_account_id = $${paramIndex})`;
       params.push(account_id);
       paramIndex++;
+    }
+
+    // Filter by recurring series
+    const { recurring_series_id, include_recurring } = req.query;
+
+    if (recurring_series_id) {
+      query += ` AND recurring_series_id = $${paramIndex}`;
+      params.push(recurring_series_id);
+      paramIndex++;
+    } else if (include_recurring === "false") {
+      query += ` AND (recurring_series_id IS NULL OR is_recurring_template = true)`;
+    }
+
+    // Exclude template transactions by default unless specifically requested
+    if (req.query.include_templates !== "true") {
+      query += ` AND (is_recurring_template IS NULL OR is_recurring_template = false)`;
     }
 
     // Filter by date range
@@ -438,6 +499,7 @@ const updateTransactionStatus = async (req, res, next) => {
 const deleteTransaction = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { delete_series, delete_future } = req.query;
 
     // Check if transaction exists
     const checkResult = await pool.query(
@@ -449,7 +511,46 @@ const deleteTransaction = async (req, res, next) => {
       throw new ApiError(`No transaction found with id ${id}`, 404);
     }
 
-    // Delete the transaction
+    const transaction = checkResult.rows[0];
+
+    // Check if this is part of a recurring series
+    if (
+      transaction.recurring_series_id &&
+      (delete_series === "true" || delete_future === "true")
+    ) {
+      if (delete_series === "true") {
+        // Delete the entire series
+        await recurringTransactionService.deleteRecurringSeries(
+          transaction.recurring_series_id,
+          false // Don't keep instances
+        );
+
+        res.status(200).json({
+          status: "success",
+          message: "Recurring transaction series deleted successfully",
+        });
+        return;
+      } else if (delete_future === "true") {
+        // Delete this and all future transactions in the series
+        const today = new Date(transaction.date);
+
+        await pool.query(
+          `DELETE FROM transactions 
+           WHERE recurring_series_id = $1 
+           AND is_recurring_template = false
+           AND date >= $2`,
+          [transaction.recurring_series_id, today]
+        );
+
+        res.status(200).json({
+          status: "success",
+          message: "Future recurring transactions deleted successfully",
+        });
+        return;
+      }
+    }
+
+    // Delete the single transaction
     await pool.query(`DELETE FROM transactions WHERE id = $1`, [id]);
 
     res.status(200).json({

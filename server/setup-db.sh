@@ -18,4 +18,11 @@ psql -h $DB_HOST -U $DB_USER -p $DB_PORT -c "CREATE DATABASE $DB_NAME WITH ENCOD
 echo "Setting up database schema..."
 psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -f src/db/schema.sql
 
+# Apply all migration scripts
+echo "Applying database migrations..."
+for migration in src/db/migrations/*.sql; do
+    echo "Applying migration: $migration"
+    psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -f $migration
+done
+
 echo "Database setup complete!"

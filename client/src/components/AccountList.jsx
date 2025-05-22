@@ -155,7 +155,6 @@ const AccountList = ({ accountType = "standard", onAccountSelect = null }) => {
         return (
           <div className="text-gray-600">
             <p>Balance: {formatCurrency(account.balance)}</p>
-            <p>Credit Limit: {formatCurrency(account.credit_limit)}</p>
             <p>Interest Rate: {account.interest_rate}%</p>
           </div>
         );

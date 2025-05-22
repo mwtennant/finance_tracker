@@ -21,6 +21,14 @@ const TransactionForm = () => {
     date: new Date().toISOString().slice(0, 10), // Today's date in YYYY-MM-DD format
     status: "Created",
     description: "",
+
+    // Recurring transaction fields
+    is_recurring: false,
+    recurrence_type: "monthly",
+    recurrence_interval: 1,
+    recurring_name: "",
+    start_date: new Date().toISOString().slice(0, 10),
+    end_date: "",
   });
 
   // Validation errors
@@ -175,6 +183,51 @@ const TransactionForm = () => {
         amount: parseFloat(formData.amount),
       };
 
+      // If it's a recurring transaction, use the recurring-transactions endpoint
+      if (formData.is_recurring) {
+        const recurringResponse = await fetch(
+          "http://localhost:5002/api/recurring-transactions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              // Series data
+              name:
+                formData.recurring_name ||
+                `${formData.transaction_type} (${formData.recurrence_type})`,
+              description: formData.description,
+              recurrence_type: formData.recurrence_type,
+              recurrence_interval: parseInt(formData.recurrence_interval),
+              start_date: formData.start_date || formData.date,
+              end_date: formData.end_date || null,
+
+              // Template transaction data
+              transaction_type: formData.transaction_type,
+              from_account_id: formData.from_account_id || null,
+              to_account_id: formData.to_account_id || null,
+              amount: parseFloat(formData.amount),
+              transaction_date: formData.date,
+              transaction_description: formData.description,
+            }),
+          }
+        );
+
+        if (!recurringResponse.ok) {
+          const errorData = await recurringResponse.json();
+          throw new Error(
+            errorData.message ||
+              `HTTP error! Status: ${recurringResponse.status}`
+          );
+        }
+
+        // Navigate to the recurring transactions list
+        navigate("/dashboard/transactions/recurring");
+        return;
+      }
+
+      // Regular one-time transaction
       const response = await fetch("http://localhost:5002/api/transactions", {
         method: "POST",
         headers: {
@@ -523,12 +576,118 @@ const TransactionForm = () => {
           {errors.description && (
             <p className="text-red-500 text-sm mt-1">{errors.description}</p>
           )}
+        </div>
 
-          {formData.transaction_type === "credit_card_spending" && (
-            <p className="text-sm text-gray-600 mt-1">
-              For credit card spending, prefix with "Bulk-" for monthly spending
-              or "Individual-" for specific purchases
-            </p>
+        {/* Recurring Transaction Toggle */}
+        <div className="mb-6 border-t pt-6">
+          <div className="flex items-center mb-4">
+            <input
+              type="checkbox"
+              id="is_recurring"
+              name="is_recurring"
+              checked={formData.is_recurring}
+              onChange={(e) =>
+                setFormData({ ...formData, is_recurring: e.target.checked })
+              }
+              className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+              disabled={loading}
+            />
+            <label
+              htmlFor="is_recurring"
+              className="ml-2 text-gray-700 font-medium"
+            >
+              This is a recurring transaction
+            </label>
+          </div>
+
+          {formData.is_recurring && (
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 mb-4">
+              <h3 className="text-lg font-semibold text-purple-700 mb-4">
+                Recurring Details
+              </h3>
+
+              {/* Recurring Name */}
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">
+                  Series Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="recurring_name"
+                  value={formData.recurring_name}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  placeholder="E.g., 'Monthly Rent' or 'Salary Deposit'"
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Recurrence Type & Interval */}
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">
+                  Repeat Every
+                </label>
+                <div className="flex">
+                  <input
+                    type="number"
+                    name="recurrence_interval"
+                    value={formData.recurrence_interval}
+                    onChange={handleChange}
+                    min="1"
+                    className="w-20 p-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                    disabled={loading}
+                  />
+                  <select
+                    name="recurrence_type"
+                    value={formData.recurrence_type}
+                    onChange={handleChange}
+                    className="flex-1 p-3 border border-gray-300 border-l-0 rounded-r-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                    disabled={loading}
+                  >
+                    <option value="daily">Day(s)</option>
+                    <option value="weekly">Week(s)</option>
+                    <option value="monthly">Month(s)</option>
+                    <option value="yearly">Year(s)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Start Date */}
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">
+                  Series Start Date
+                </label>
+                <input
+                  type="date"
+                  name="start_date"
+                  value={formData.start_date}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  disabled={loading}
+                />
+                <p className="text-gray-500 text-sm mt-1">
+                  Default is the transaction date
+                </p>
+              </div>
+
+              {/* End Date */}
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">
+                  Series End Date (Optional)
+                </label>
+                <input
+                  type="date"
+                  name="end_date"
+                  value={formData.end_date}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  disabled={loading}
+                />
+                <p className="text-gray-500 text-sm mt-1">
+                  Leave blank for indefinite recurring transactions
+                </p>
+              </div>
+            </div>
           )}
         </div>
 

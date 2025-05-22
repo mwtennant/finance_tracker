@@ -58,7 +58,6 @@ const mockPlan = {
       name: "Visa Card",
       interest_rate: 18.5,
       balance: 2000,
-      credit_limit: 10000,
     },
   ],
   loans: [

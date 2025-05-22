@@ -59,11 +59,32 @@ const createAccount = async (req, res, next) => {
 
       // If APR is provided, create an initial APR history record
       if (apr !== undefined && apr !== null) {
-        await client.query(
-          `INSERT INTO account_apr_history (account_id, apr, effective_date) 
-           VALUES ($1, $2, $3)`,
-          [account.id, apr, new Date()]
-        );
+        try {
+          // First check if the table exists
+          const tableCheck = await client.query(
+            `SELECT EXISTS (
+              SELECT FROM information_schema.tables 
+              WHERE table_schema = 'public' AND table_name = 'account_apr_history'
+            ) as exists`
+          );
+
+          if (tableCheck.rows[0].exists) {
+            // Table exists, proceed with insertion
+            await client.query(
+              `INSERT INTO account_apr_history (account_id, apr, effective_date) 
+               VALUES ($1, $2, $3)`,
+              [account.id, apr, new Date()]
+            );
+          } else {
+            // Table doesn't exist, log warning but don't fail the operation
+            console.warn(
+              "account_apr_history table doesn't exist. APR history not recorded. Please run migrations."
+            );
+          }
+        } catch (err) {
+          // Log the error but don't fail the entire account creation
+          console.error("Failed to record APR history:", err);
+        }
       }
 
       await client.query("COMMIT");
@@ -232,16 +253,37 @@ const updateAccount = async (req, res, next) => {
 
       // If APR was provided and it's different from the current one, add to history
       if (apr !== undefined && apr !== currentAccount.apr) {
-        // Default to today if no effective date was provided
-        const effectiveDate = apr_effective_date
-          ? new Date(apr_effective_date)
-          : new Date();
+        try {
+          // First check if the table exists
+          const tableCheck = await client.query(
+            `SELECT EXISTS (
+              SELECT FROM information_schema.tables 
+              WHERE table_schema = 'public' AND table_name = 'account_apr_history'
+            ) as exists`
+          );
 
-        await client.query(
-          `INSERT INTO account_apr_history (account_id, apr, effective_date) 
-           VALUES ($1, $2, $3)`,
-          [id, apr, effectiveDate]
-        );
+          if (tableCheck.rows[0].exists) {
+            // Default to today if no effective date was provided
+            const effectiveDate = apr_effective_date
+              ? new Date(apr_effective_date)
+              : new Date();
+
+            // Table exists, proceed with insertion
+            await client.query(
+              `INSERT INTO account_apr_history (account_id, apr, effective_date) 
+               VALUES ($1, $2, $3)`,
+              [id, apr, effectiveDate]
+            );
+          } else {
+            // Table doesn't exist, log warning but don't fail the operation
+            console.warn(
+              "account_apr_history table doesn't exist. APR history not recorded. Please run migrations."
+            );
+          }
+        } catch (err) {
+          // Log the error but don't fail the entire account update
+          console.error("Failed to record APR history:", err);
+        }
       }
 
       await client.query("COMMIT");
@@ -307,21 +349,56 @@ const getAccountAPRHistory = async (req, res, next) => {
       throw new ApiError(`No account found with id ${id}`, 404);
     }
 
-    // Get APR history
-    const historyResult = await pool.query(
-      `SELECT * FROM account_apr_history 
-       WHERE account_id = $1 
-       ORDER BY effective_date DESC`,
-      [id]
-    );
+    try {
+      // First check if the table exists
+      const tableCheck = await pool.query(
+        `SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' AND table_name = 'account_apr_history'
+        ) as exists`
+      );
 
-    res.status(200).json({
-      status: "success",
-      data: {
-        account: accountResult.rows[0],
-        apr_history: historyResult.rows,
-      },
-    });
+      if (tableCheck.rows[0].exists) {
+        // Get APR history if table exists
+        const historyResult = await pool.query(
+          `SELECT * FROM account_apr_history 
+           WHERE account_id = $1 
+           ORDER BY effective_date DESC`,
+          [id]
+        );
+
+        res.status(200).json({
+          status: "success",
+          data: {
+            account: accountResult.rows[0],
+            apr_history: historyResult.rows,
+          },
+        });
+      } else {
+        // If table doesn't exist, return empty history
+        console.warn(
+          "account_apr_history table doesn't exist. Please run migrations."
+        );
+        res.status(200).json({
+          status: "success",
+          data: {
+            account: accountResult.rows[0],
+            apr_history: [],
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error retrieving APR history:", error);
+      // Still return the account data even if retrieving history fails
+      res.status(200).json({
+        status: "success",
+        data: {
+          account: accountResult.rows[0],
+          apr_history: [],
+          error: "Failed to retrieve APR history",
+        },
+      });
+    }
   } catch (error) {
     next(error);
   }

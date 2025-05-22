@@ -7,19 +7,11 @@ const { ApiError } = require("../middleware/errorMiddleware");
  */
 const createCreditAccount = async (req, res, next) => {
   try {
-    const { name, balance, credit_limit, interest_rate } = req.body;
+    const { name, balance, interest_rate } = req.body;
 
     // Validate required fields
-    if (!name || credit_limit === undefined || interest_rate === undefined) {
-      throw new ApiError(
-        "Name, credit limit, and interest rate are required",
-        400
-      );
-    }
-
-    // Validate numeric values
-    if (isNaN(credit_limit) || credit_limit <= 0) {
-      throw new ApiError("Credit limit must be a positive number", 400);
+    if (!name || interest_rate === undefined) {
+      throw new ApiError("Name and interest rate are required", 400);
     }
 
     if (isNaN(interest_rate) || interest_rate < 0) {
@@ -32,7 +24,6 @@ const createCreditAccount = async (req, res, next) => {
         id: 777,
         name,
         balance: balance || 0,
-        credit_limit,
         interest_rate,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -45,10 +36,10 @@ const createCreditAccount = async (req, res, next) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO credit_accounts (name, balance, credit_limit, interest_rate) 
-       VALUES ($1, $2, $3, $4) 
+      `INSERT INTO credit_accounts (name, balance, interest_rate) 
+       VALUES ($1, $2, $3) 
        RETURNING *`,
-      [name, balance || 0, credit_limit, interest_rate]
+      [name, balance || 0, interest_rate]
     );
 
     res.status(201).json({
@@ -72,7 +63,6 @@ const getAllCreditAccounts = async (req, res, next) => {
           id: 777,
           name: "Test Credit Card",
           balance: 1200.0,
-          credit_limit: 5000.0,
           interest_rate: 18.99,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -81,7 +71,6 @@ const getAllCreditAccounts = async (req, res, next) => {
           id: 778,
           name: "Test Store Card",
           balance: 350.0,
-          credit_limit: 2000.0,
           interest_rate: 22.99,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -140,7 +129,7 @@ const getCreditAccountById = async (req, res, next) => {
 const updateCreditAccount = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, balance, credit_limit, interest_rate } = req.body;
+    const { name, balance, interest_rate } = req.body;
 
     // Check if credit account exists
     const checkResult = await pool.query(
@@ -150,14 +139,6 @@ const updateCreditAccount = async (req, res, next) => {
 
     if (checkResult.rows.length === 0) {
       throw new ApiError(`No credit account found with id ${id}`, 404);
-    }
-
-    // Validate numeric values if provided
-    if (
-      credit_limit !== undefined &&
-      (isNaN(credit_limit) || credit_limit <= 0)
-    ) {
-      throw new ApiError("Credit limit must be a positive number", 400);
     }
 
     if (
@@ -172,8 +153,6 @@ const updateCreditAccount = async (req, res, next) => {
     const updatedName = name || currentAccount.name;
     const updatedBalance =
       balance !== undefined ? balance : currentAccount.balance;
-    const updatedCreditLimit =
-      credit_limit !== undefined ? credit_limit : currentAccount.credit_limit;
     const updatedInterestRate =
       interest_rate !== undefined
         ? interest_rate
@@ -181,10 +160,10 @@ const updateCreditAccount = async (req, res, next) => {
 
     const result = await pool.query(
       `UPDATE credit_accounts 
-       SET name = $1, balance = $2, credit_limit = $3, interest_rate = $4, updated_at = NOW() 
-       WHERE id = $5 
+       SET name = $1, balance = $2, interest_rate = $3, updated_at = NOW() 
+       WHERE id = $4 
        RETURNING *`,
-      [updatedName, updatedBalance, updatedCreditLimit, updatedInterestRate, id]
+      [updatedName, updatedBalance, updatedInterestRate, id]
     );
 
     res.status(200).json({

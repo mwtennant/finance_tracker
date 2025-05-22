@@ -5,8 +5,10 @@ import { usePlans } from "../context/PlanContext";
 const PlanForm = ({ isEditMode = false }) => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { createPlan, updatePlan, getPlan, loading, error, clearError } =
-    usePlans();
+  const { createPlan, updatePlan, getPlan, error, clearError } = usePlans();
+
+  // Local loading state for this form only
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -102,6 +104,7 @@ const PlanForm = ({ isEditMode = false }) => {
 
     if (validateForm()) {
       const planData = { ...formData };
+      setIsSubmitting(true);
 
       try {
         if (isEditMode) {
@@ -122,6 +125,8 @@ const PlanForm = ({ isEditMode = false }) => {
           isEditMode ? "Error updating plan:" : "Error creating plan:",
           err
         );
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
@@ -156,7 +161,7 @@ const PlanForm = ({ isEditMode = false }) => {
               errors.name ? "border-red-500" : "border-gray-300"
             }`}
             placeholder="Retirement Plan"
-            disabled={loading}
+            disabled={isSubmitting}
           />
           {errors.name && (
             <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -178,7 +183,7 @@ const PlanForm = ({ isEditMode = false }) => {
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition"
             placeholder="Describe your financial plan"
             rows="3"
-            disabled={loading}
+            disabled={isSubmitting}
           />
         </div>
 
@@ -199,7 +204,7 @@ const PlanForm = ({ isEditMode = false }) => {
               className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition ${
                 errors.start_date ? "border-red-500" : "border-gray-300"
               }`}
-              disabled={loading}
+              disabled={isSubmitting}
             />
             {errors.start_date && (
               <p className="text-red-500 text-sm mt-1">{errors.start_date}</p>
@@ -212,7 +217,7 @@ const PlanForm = ({ isEditMode = false }) => {
               className="block text-gray-700 font-medium mb-2"
             >
               End Date <span className="text-red-500">*</span>
-            </label>
+            </label>{" "}
             <input
               type="date"
               id="end_date"
@@ -222,7 +227,7 @@ const PlanForm = ({ isEditMode = false }) => {
               className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition ${
                 errors.end_date ? "border-red-500" : "border-gray-300"
               }`}
-              disabled={loading}
+              disabled={isSubmitting}
             />
             {errors.end_date && (
               <p className="text-red-500 text-sm mt-1">{errors.end_date}</p>
@@ -237,20 +242,20 @@ const PlanForm = ({ isEditMode = false }) => {
               navigate(isEditMode ? `/plans/${id}` : "/dashboard/plans")
             }
             className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50"
-            disabled={loading}
+            disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             type="submit"
             className="px-6 py-3 bg-purple-600 rounded-lg text-white font-medium hover:bg-purple-700 transition"
-            disabled={loading}
+            disabled={isSubmitting}
           >
             {isEditMode
-              ? loading
+              ? isSubmitting
                 ? "Updating..."
                 : "Update Plan"
-              : loading
+              : isSubmitting
               ? "Creating..."
               : "Create Plan"}
           </button>

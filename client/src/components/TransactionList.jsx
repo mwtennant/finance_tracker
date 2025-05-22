@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import TransactionModal from "./TransactionModal";
 
 const TransactionList = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // State for account data
+  const [accountNames, setAccountNames] = useState({});
+  // State for edit modal
+  const [editingTransaction, setEditingTransaction] = useState(null);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -13,6 +18,8 @@ const TransactionList = () => {
     start_date: "",
     end_date: "",
     status: "",
+    include_recurring: "true", // Include recurring by default
+    sort_order: "ASC", // Sort oldest to newest
   });
 
   // Fetch transactions on component mount and when filters change
@@ -50,6 +57,73 @@ const TransactionList = () => {
     fetchTransactions();
   }, [filters]);
 
+  // Fetch account information when component mounts
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        // Fetch standard accounts
+        const standardRes = await fetch("http://localhost:5002/api/accounts");
+        if (standardRes.ok) {
+          const data = await standardRes.json();
+          const accounts = data.data || [];
+          accounts.forEach((account) => {
+            setAccountNames((prev) => ({
+              ...prev,
+              [account.id]: account.name,
+            }));
+          });
+        }
+
+        // Fetch credit accounts
+        const creditRes = await fetch(
+          "http://localhost:5002/api/credit-accounts"
+        );
+        if (creditRes.ok) {
+          const data = await creditRes.json();
+          const accounts = data.data || [];
+          accounts.forEach((account) => {
+            setAccountNames((prev) => ({
+              ...prev,
+              [account.id]: account.name,
+            }));
+          });
+        }
+
+        // Fetch loans
+        const loanRes = await fetch("http://localhost:5002/api/loans");
+        if (loanRes.ok) {
+          const data = await loanRes.json();
+          const accounts = data.data || [];
+          accounts.forEach((account) => {
+            setAccountNames((prev) => ({
+              ...prev,
+              [account.id]: account.name,
+            }));
+          });
+        }
+
+        // Fetch investment accounts
+        const investmentRes = await fetch(
+          "http://localhost:5002/api/investment-accounts"
+        );
+        if (investmentRes.ok) {
+          const data = await investmentRes.json();
+          const accounts = data.data || [];
+          accounts.forEach((account) => {
+            setAccountNames((prev) => ({
+              ...prev,
+              [account.id]: account.name,
+            }));
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching account information:", err);
+      }
+    };
+
+    fetchAccounts();
+  }, []);
+
   // Handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -64,6 +138,7 @@ const TransactionList = () => {
       start_date: "",
       end_date: "",
       status: "",
+      include_recurring: "true",
     });
   };
 
@@ -122,15 +197,161 @@ const TransactionList = () => {
     }
   };
 
+  // Check if a transaction is urgent (past scheduled date and not Posted/Canceled)
+  const isTransactionUrgent = (transaction) => {
+    const today = new Date();
+    const transactionDate = new Date(transaction.date);
+    return (
+      transactionDate < today &&
+      transaction.status !== "Posted" &&
+      transaction.status !== "Canceled"
+    );
+  };
+
+  // Check if a transaction needs attention (within 7 days and not Scheduled/Canceled)
+  const transactionNeedsAttention = (transaction) => {
+    const today = new Date();
+    const transactionDate = new Date(transaction.date);
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(today.getDate() + 7);
+
+    return (
+      transactionDate <= sevenDaysFromNow &&
+      transactionDate >= today &&
+      transaction.status !== "Scheduled" &&
+      transaction.status !== "Canceled"
+    );
+  }; // Format the accounts display
+  const formatAccountsDisplay = (fromId, toId) => {
+    if (!fromId && !toId) return "No accounts specified";
+
+    const fromName = fromId
+      ? accountNames[fromId] || `Account #${fromId}`
+      : null;
+    const toName = toId ? accountNames[toId] || `Account #${toId}` : null;
+
+    if (fromId && toId) {
+      return `Transfer from ${fromName} to ${toName}`;
+    } else if (fromId) {
+      return `From: ${fromName}`;
+    } else if (toId) {
+      return `To: ${toName}`;
+    }
+  };
+
+  // Handle editing a transaction
+  const handleEditTransaction = (transaction) => {
+    setEditingTransaction(transaction);
+  };
+
+  // Handle saving transaction changes
+  const handleSaveTransaction = (updatedTransaction) => {
+    // Update the transaction in the list
+    setTransactions(
+      transactions.map((t) =>
+        t.id === updatedTransaction.id ? updatedTransaction : t
+      )
+    );
+    // Close the modal
+    setEditingTransaction(null);
+  };
+
+  // Handle delete transaction
+  const handleDeleteTransaction = async (transaction) => {
+    try {
+      // If it's part of a recurring series, ask if user wants to delete the entire series
+      if (transaction.recurring_series_id) {
+        const deleteOptions = [
+          { label: "Delete just this transaction", value: "single" },
+          { label: "Delete this and all future transactions", value: "future" },
+          { label: "Delete the entire recurring series", value: "series" },
+        ];
+
+        // Use a simple prompt for now (could be replaced with a better UI later)
+        const userChoice = window.prompt(
+          `This is part of a recurring series. What would you like to delete?\n\n1. Delete just this transaction\n2. Delete this and all future transactions\n3. Delete the entire recurring series\n\nEnter 1, 2, or 3:`,
+          "1"
+        );
+
+        if (!userChoice) return; // User cancelled
+
+        const choice = parseInt(userChoice);
+        if (isNaN(choice) || choice < 1 || choice > 3) {
+          alert("Invalid choice. Please try again.");
+          return;
+        }
+
+        let deleteUrl = `http://localhost:5002/api/transactions/${transaction.id}`;
+
+        if (choice === 2) {
+          deleteUrl += "?delete_future=true";
+        } else if (choice === 3) {
+          deleteUrl += "?delete_series=true";
+        }
+
+        const response = await fetch(deleteUrl, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        // Refresh transactions
+        setFilters((prev) => ({ ...prev }));
+        return;
+      }
+
+      // Regular non-recurring transaction
+      if (
+        !window.confirm("Are you sure you want to delete this transaction?")
+      ) {
+        return;
+      }
+
+      const response = await fetch(
+        `http://localhost:5002/api/transactions/${transaction.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      // Refresh transactions
+      setFilters((prev) => ({ ...prev }));
+    } catch (err) {
+      setError("Failed to delete transaction. Please try again later.");
+      console.error("Error deleting transaction:", err);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-4">
+      {/* Header with Add Button */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-purple-700">Transactions</h2>
+        <h2 className="text-xl font-semibold text-gray-800">Transactions</h2>
         <Link
-          to="/transactions/new"
-          className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition"
+          to="/dashboard/transactions/new"
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
         >
-          New Transaction
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 mr-2"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          Add Transaction
         </Link>
       </div>
 
@@ -176,6 +397,22 @@ const TransactionList = () => {
               <option value="Posted">Posted</option>
               <option value="Pending">Pending</option>
               <option value="Canceled">Canceled</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Recurring Transactions
+            </label>
+            <select
+              name="include_recurring"
+              value={filters.include_recurring}
+              onChange={handleFilterChange}
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            >
+              <option value="true">Show All Transactions</option>
+              <option value="false">Hide Recurring Transactions</option>
+              <option value="only">Show Only Recurring Transactions</option>
             </select>
           </div>
 
@@ -286,13 +523,36 @@ const TransactionList = () => {
                 >
                   Description
                 </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {transactions.map((transaction) => (
-                <tr key={transaction.id} className="hover:bg-gray-50">
+                <tr
+                  key={transaction.id}
+                  className={`hover:bg-gray-50 ${
+                    isTransactionUrgent(transaction)
+                      ? "bg-red-50 border-l-4 border-red-500"
+                      : transactionNeedsAttention(transaction)
+                      ? "bg-yellow-50 border-l-4 border-yellow-500"
+                      : ""
+                  }`}
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {formatDate(transaction.date)}
+                    {transaction.recurring_series_id && (
+                      <span
+                        className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
+                        title="Part of a recurring series"
+                      >
+                        Recurring
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -307,15 +567,9 @@ const TransactionList = () => {
                     {formatCurrency(transaction.amount)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {transaction.from_account_id && (
-                      <div className="text-xs">
-                        From: {transaction.from_account_id}
-                      </div>
-                    )}
-                    {transaction.to_account_id && (
-                      <div className="text-xs">
-                        To: {transaction.to_account_id}
-                      </div>
+                    {formatAccountsDisplay(
+                      transaction.from_account_id,
+                      transaction.to_account_id
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -329,6 +583,55 @@ const TransactionList = () => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">
                     {transaction.description || "-"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button
+                      onClick={() => handleEditTransaction(transaction)}
+                      className="text-indigo-600 hover:text-indigo-900 mr-3"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTransaction(transaction)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTransaction(transaction)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 2a1 1 0 011 1v1h4a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2h4V3a1 1 0 011-1zm1 3H9v2h2V5zm0 4H9v2h2V9zm0 4H9v2h2v-2zm4-8h-2V3h2v2z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -360,12 +663,21 @@ const TransactionList = () => {
               : "You haven't created any transactions yet. Get started by creating your first transaction."}
           </p>
           <Link
-            to="/transactions/new"
+            to="/dashboard/transactions/new"
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
           >
             Create Transaction
           </Link>
         </div>
+      )}
+
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <TransactionModal
+          transaction={editingTransaction}
+          onClose={() => setEditingTransaction(null)}
+          onSave={handleSaveTransaction}
+        />
       )}
     </div>
   );
