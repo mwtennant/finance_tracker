@@ -24,7 +24,11 @@ export const PlanProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/plans`);
+      console.log("Attempting to fetch plans from:", `${API_URL}/plans`);
+      const response = await fetch(`${API_URL}/plans`, {
+        // Adding timeout to fetch request
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
 
       if (!response.ok) {
         // Handle specific status codes with more informative messages
@@ -42,11 +46,16 @@ export const PlanProvider = ({ children }) => {
       }
 
       const data = await response.json();
+      console.log("Successfully fetched plans:", data.data?.length || 0);
       setPlans(data.data || []);
     } catch (err) {
       console.error("Error fetching plans:", err);
       // Set a more descriptive error message for the user
-      setError(err.message || "Failed to load plans. Please try again later.");
+      setError(
+        err.name === "AbortError" 
+          ? "Request timed out. Please ensure the server is running." 
+          : err.message || "Failed to load plans. Please try again later."
+      );
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import { useNotification } from "../context/NotificationContext";
 import AccountModal from "./AccountModal";
 import LinkedAccountsSection from "./LinkedAccountsSection";
 import ConfirmationModal from "./ConfirmationModal";
+import PlanLedger from "./PlanLedger";
 
 const PlanDetailPage = () => {
   const { id } = useParams();
@@ -280,6 +281,18 @@ const PlanDetailPage = () => {
               Accounts
             </button>
           </li>
+          <li className="mr-2">
+            <button
+              onClick={() => setActiveTab("ledger")}
+              className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                activeTab === "ledger"
+                  ? "text-purple-600 border-purple-600"
+                  : "border-transparent hover:text-gray-600 hover:border-gray-300"
+              }`}
+            >
+              Ledger
+            </button>
+          </li>
         </ul>
       </div>
 
@@ -386,6 +399,15 @@ const PlanDetailPage = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Ledger Tab Content */}
+      {activeTab === "ledger" && (
+        <PlanLedger
+          plan={plan}
+          formatCurrency={formatCurrency}
+          onNavigateToAccountsTab={() => setActiveTab("accounts")}
+        />
       )}
 
       {/* Account Modal for linking accounts */}
